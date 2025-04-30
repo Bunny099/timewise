@@ -1,12 +1,7 @@
-
-// api/report/data?k=ew&j=odj
-
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
-
-
 
 export async function GET(req: NextRequest) {
     try {
@@ -46,7 +41,7 @@ export async function GET(req: NextRequest) {
             const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
             totalHours += duration;
 
-            const projectKey=entry.projectId;
+            const projectKey = entry.projectId;
             if (!perProject[projectKey]) {
                 perProject[projectKey] = {
                     id: entry.projectId,
