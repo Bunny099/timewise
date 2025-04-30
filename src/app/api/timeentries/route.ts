@@ -6,19 +6,38 @@ import { authOptions } from "@/lib/auth";
 import { timeEntrySchema } from "@/lib/zod/timeEntry.schema";
 
 
+
 export async function GET() {
     try {
         const session = await getServerSession(authOptions);
-        if (!session) return NextResponse.json({ error: "aunthorized" }, { status: 401 })
+        if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         const entries = await prisma.timeEntry.findMany({
             where: { userId: session.user?.id },
             orderBy: { startTime: "desc" }
 
         });
+
+        // only todays entries
+
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
+        const todaysEntries = await prisma.timeEntry.findMany({
+            where: {
+                userId: session.user?.id,
+                createdAt: {
+                    gte: startOfToday,
+                    lte: endOfToday
+                }
+            }, include: {
+                project: true
+            }
+        })
         if (entries.length === 0) {
             return NextResponse.json({ error: "No Entries found!" }, { status: 400 })
         }
-        return NextResponse.json({ entries }, { status: 200 })
+        return NextResponse.json({ entries, todaysEntries }, { status: 200 })
     } catch (error) {
         return NextResponse.json({ error: "Error while fetching Entries!" }, { status: 400 })
     }
@@ -80,8 +99,49 @@ export async function POST(req: NextRequest) {
 
 }
 export async function PUT(req: NextRequest) {
+    try {
+        const body = await req.json();
+        const { timeEntryId, startTime, endTime } = await body;
+        if (!timeEntryId || !startTime || !endTime) {
+            return NextResponse.json({ error: "All field are required!" }, { status: 400 })
+        }
+        const existing = await prisma.timeEntry.findUnique({ where: { id: timeEntryId } });
+        if (!existing) {
+            return NextResponse.json({ error: "No Entry exist with this Id!" }, { status: 404 });
+        }
+
+        const updated = await prisma.timeEntry.update({
+            where: { id: timeEntryId }, data: {
+                startTime,
+                endTime
+            }
+        })
+        if (!updated) {
+            return NextResponse.json({ error: "Error while updating Time entry!" }, { status: 400 })
+        }
+        return NextResponse.json({ updated }, { status: 200 })
+    } catch (error) {
+        console.error("Error updating time Entry: ", error)
+        return NextResponse.json({ error: "Server error while updating timeentries!"},{ status: 500 })
+    }
 
 }
 export async function DELETE(req: NextRequest) {
+    try {
+        const body = await req.json();
+        const id = await body;
+        if (!id) {
+            return NextResponse.json({ error: "Id field is required !" }, { status: 400 })
+        }
+        const existing = await prisma.timeEntry.findUnique({ where: { id: id } });
+        if (!existing) {
+            return NextResponse.json({ error: "Time entry not exists with this Id!" }, { status: 400 })
+        }
+        const updatedEntry = prisma.timeEntry.delete({ where: { id: id } });
+        return NextResponse.json({ updatedEntry }, { status: 200 })
+    } catch (error) {
+        console.error("Error while deleting Entry:", error);
+        return NextResponse.json({ error: "Server error while deleting time entry!" }, { status: 500 })
+    }
 
 }

@@ -1,4 +1,5 @@
 "use client";
+import { prisma } from "@/lib/prisma";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { GoPlus } from "react-icons/go";
@@ -6,6 +7,14 @@ import { GoPlus } from "react-icons/go";
 type Project = {
   id: string;
   name: string;
+};
+type TimeEntry = {
+  id: string;
+  duration: number;
+  description: string;
+  project: {
+    name: string;
+  };
 };
 export default function TimeEntry() {
   const [openModal, setOpenModal] = useState(false);
@@ -20,6 +29,8 @@ export default function TimeEntry() {
 
   // in zod schema duration is number we have parseInt
   const [duration, setDuration] = useState<number>();
+  const [todaysEntries, setTodaysEntries] = useState<TimeEntry[]>([]);
+
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -52,10 +63,10 @@ export default function TimeEntry() {
     setTimerRunning(true);
     setOpenModal(false);
   };
-  
+
   const handleEndTime = async () => {
     if (!startTime) {
-      console.log("start time ie empty!");
+      console.log("start time is empty!");
       return;
     }
     const now = new Date().toISOString();
@@ -101,6 +112,28 @@ export default function TimeEntry() {
     year: "numeric",
   });
 
+  useEffect(() => {
+    const onlyTodaysTimeEntry = async () => {
+      try {
+        const response = await axios.get("/api/timeentries");
+
+        if (!response.data) {
+          console.log("Error while geting only todays entries!");
+        } else {
+          setTodaysEntries(response.data.todaysEntries);
+        }
+      } catch (error) {
+        console.error(error, "Error while geting only todys entries");
+      }
+    };
+    onlyTodaysTimeEntry();
+  }, []);
+  const totalMinutes = todaysEntries.reduce(
+    (arr, entry) => arr + entry.duration,
+    0
+  );
+  const hours = Math.floor(totalMinutes / 60);
+  const mintus = totalMinutes % 60;
   return (
     <div className="flex justify-center w-full min-h-screen">
       <div className="p-4 ">
@@ -117,8 +150,40 @@ export default function TimeEntry() {
           Today:{today}
         </p>
 
+        <p className="text-lg font-medium mt-2">
+          Total Time Tracked: {hours}h {mintus}m
+        </p>
+        {todaysEntries.length > 0 ? (
+          todaysEntries.map((entry, index) => (
+            <div
+              key={entry.id || index}
+              className="flex justify-between items-center bg-orange-50 rounded p-4 mt-4 border border-gray-200"
+            >
+              <div className="flex flex-col">
+                <p className="text-lg font-semibold text-gray-800">
+                  {entry.project.name}
+                </p>
+                <p className="text-sm text-gray-600">{entry.description}</p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <>
+                  <p className="text-sm text-gray-700 font-medium">
+                    Duration: {entry.duration}m
+                  </p>
+                  <button  className="border border-gray-400 text-sm px-3 py-1 rounded hover:bg-gray-100">
+                    Edit
+                  </button>
+                </>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="mt-4 text-gray-600"> No Entries for today!</p>
+        )}
+
         {startTime && (
-          <div className="flex justify-between items-center bg-gray-100 rounded p-4 mt-4 border border-gray-300">
+          <div className="flex justify-between items-center bg-orange-50 rounded p-4 mt-4 border border-gray-200">
             <div className="flex flex-col">
               <p className="text-lg font-semibold text-gray-800">
                 {projects.find((p) => p.id === projectId)?.name || "Project"}
