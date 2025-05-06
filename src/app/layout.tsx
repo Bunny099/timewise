@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TimeWise – Effortless Time Tracking & Reporting",
+  title: "TimeWise",
   description:
     "TimeWise is a smart time-tracking tool designed to help developers and teams log time, manage tasks, and generate insightful reports with ease.",
   keywords: [
