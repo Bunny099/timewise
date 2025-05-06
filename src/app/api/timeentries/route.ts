@@ -1,11 +1,8 @@
-
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { timeEntrySchema } from "@/lib/zod/timeEntry.schema";
-
-
 
 export async function GET() {
     try {
@@ -16,8 +13,6 @@ export async function GET() {
             orderBy: { startTime: "desc" }
 
         });
-
-        // only todays entries
 
         const startOfToday = new Date();
         startOfToday.setHours(0, 0, 0, 0);
@@ -35,7 +30,7 @@ export async function GET() {
             }
         })
         if (entries.length === 0) {
-            return NextResponse.json({ error: "No Entries found!" }, { status: 400 })
+            return NextResponse.json({ entries: [], todaysEntries: [] }, { status: 200 })
         }
         return NextResponse.json({ entries, todaysEntries }, { status: 200 })
     } catch (error) {
@@ -44,8 +39,6 @@ export async function GET() {
 
 }
 export async function POST(req: NextRequest) {
-
-
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user?.id) {
@@ -88,20 +81,21 @@ export async function POST(req: NextRequest) {
                 taskId: finalTaskId
             }
         })
-        if (!timeEntries) {
-            return NextResponse.json({ error: "Entry not created!" }, { status: 400 })
-        }
+
         return NextResponse.json({ timeEntries }, { status: 201 })
     } catch (error) {
-        console.error("TimeEntries post Error:", error)
         return NextResponse.json({ error: "server error while creating entries!" }, { status: 400 })
     }
 
 }
 export async function PUT(req: NextRequest) {
     try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+        }
         const body = await req.json();
-        const { timeEntryId, startTime, endTime } = await body;
+        const { timeEntryId, startTime, endTime } = body;
         if (!timeEntryId || !startTime || !endTime) {
             return NextResponse.json({ error: "All field are required!" }, { status: 400 })
         }
@@ -112,8 +106,8 @@ export async function PUT(req: NextRequest) {
 
         const updated = await prisma.timeEntry.update({
             where: { id: timeEntryId }, data: {
-                startTime,
-                endTime
+                startTime: new Date(startTime),
+                endTime: new Date(endTime)
             }
         })
         if (!updated) {
@@ -121,15 +115,18 @@ export async function PUT(req: NextRequest) {
         }
         return NextResponse.json({ updated }, { status: 200 })
     } catch (error) {
-        console.error("Error updating time Entry: ", error)
-        return NextResponse.json({ error: "Server error while updating timeentries!"},{ status: 500 })
+        return NextResponse.json({ error: "Server error while updating timeentries!" }, { status: 500 })
     }
 
 }
 export async function DELETE(req: NextRequest) {
     try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+        }
         const body = await req.json();
-        const id = await body;
+        const { id } = body;
         if (!id) {
             return NextResponse.json({ error: "Id field is required !" }, { status: 400 })
         }
@@ -137,10 +134,9 @@ export async function DELETE(req: NextRequest) {
         if (!existing) {
             return NextResponse.json({ error: "Time entry not exists with this Id!" }, { status: 400 })
         }
-        const updatedEntry = prisma.timeEntry.delete({ where: { id: id } });
+        const updatedEntry = await prisma.timeEntry.delete({ where: { id: id } });
         return NextResponse.json({ updatedEntry }, { status: 200 })
     } catch (error) {
-        console.error("Error while deleting Entry:", error);
         return NextResponse.json({ error: "Server error while deleting time entry!" }, { status: 500 })
     }
 

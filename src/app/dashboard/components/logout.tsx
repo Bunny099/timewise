@@ -7,5 +7,5 @@ export default function LogoutBtn(){
         await signOut({redirect:false});
         router.push("/")
     }
-    return <button className="bg-orange-500 hover:bg-orange-600 text-white text-lg px-4 py-2 rounded-full transition-all duration-200" onClick={handleLogout}>logout</button>
+    return <button className="bg-gray-950 hover:bg-gray-900 rounded-md hover:cursor-pointer  text-white text-lg  px-2 transition-all duration-200" onClick={handleLogout}>Logout</button>
 }

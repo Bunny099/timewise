@@ -1,6 +1,6 @@
 "use client";
 import { signIn } from "next-auth/react";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -8,12 +8,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-
   const loginWithGoogle = async () => {
-    const result = await signIn("google", { callbackUrl: "/dashboard/home" });
+    await signIn("google", { callbackUrl: "/dashboard/home" });
   };
   const loginFun = async (e: React.FormEvent) => {
     e.preventDefault();

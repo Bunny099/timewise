@@ -1,8 +1,9 @@
 "use client";
-import { prisma } from "@/lib/prisma";
+
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { GoPlus } from "react-icons/go";
+import { FiTrash2 } from "react-icons/fi";
 
 type Project = {
   id: string;
@@ -25,10 +26,7 @@ export default function TimeEntry() {
   const [endTime, setEndTime] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [timerRunning, setTimerRunning] = useState<boolean>(false);
-  const [elapsedTime, setElaspedTime] = useState<number>(0);
-
-  // in zod schema duration is number we have parseInt
-  const [duration, setDuration] = useState<number>();
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [todaysEntries, setTodaysEntries] = useState<TimeEntry[]>([]);
 
   useEffect(() => {
@@ -51,7 +49,6 @@ export default function TimeEntry() {
     }
   }, [openModal]);
 
-  // Time Entry logic
   const handleStartTime = () => {
     if (!projectId) {
       alert("Please select project!");
@@ -74,7 +71,7 @@ export default function TimeEntry() {
     const durationInMin = Math.floor(duration / 60000);
     setEndTime(now);
     setTimerRunning(false);
-    setElaspedTime(0);
+    setElapsedTime(0);
 
     try {
       const response = await axios.post("/api/timeentries", {
@@ -100,7 +97,7 @@ export default function TimeEntry() {
       interval = setInterval(() => {
         const now = new Date().getTime();
         const start = new Date(startTime).getTime();
-        setElaspedTime(Math.floor((now - start) / 1000));
+        setElapsedTime(Math.floor((now - start) / 1000));
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -112,86 +109,104 @@ export default function TimeEntry() {
     year: "numeric",
   });
 
-  useEffect(() => {
-    const onlyTodaysTimeEntry = async () => {
-      try {
-        const response = await axios.get("/api/timeentries");
+  const onlyTodaysTimeEntry = async () => {
+    try {
+      const response = await axios.get("/api/timeentries");
 
-        if (!response.data) {
-          console.log("Error while geting only todays entries!");
-        } else {
-          setTodaysEntries(response.data.todaysEntries);
-        }
-      } catch (error) {
-        console.error(error, "Error while geting only todys entries");
+      if (!response.data) {
+        console.log("Error while geting only todays entries!");
+      } else {
+        setTodaysEntries(response.data.todaysEntries);
       }
-    };
+    } catch (error) {
+      console.error(error, "Error while geting only todys entries");
+    }
+  };
+  useEffect(() => {
     onlyTodaysTimeEntry();
   }, []);
+
   const totalMinutes = todaysEntries.reduce(
     (arr, entry) => arr + entry.duration,
     0
   );
   const hours = Math.floor(totalMinutes / 60);
   const mintus = totalMinutes % 60;
+
+  const handleDeleteTimeEntry = async (timeEntryId: string) => {
+    try {
+      await axios.delete("/api/timeentries", {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        data: { id: timeEntryId },
+      });
+      onlyTodaysTimeEntry();
+    } catch (error) {
+      console.error("Error DELETE time entry:", error);
+    }
+  };
   return (
-    <div className="flex justify-center w-full min-h-screen">
-      <div className="p-4 ">
+    <div className="flex flex-col md:flex-row  md:justify-center w-full min-h-screen">
+      <div className="p-0 md:p-4 ">
         <div
           onClick={() => setOpenModal(true)}
-          className="bg-green-700 p-2 text-2xl text-white rounded hover:cursor-pointer"
+          className="flex justify-center bg-green-700 p-2 text-2xl  text-white rounded hover:cursor-pointer"
         >
           <GoPlus />
         </div>
       </div>
 
-      <div className="w-full p-4 ">
-        <p className="text-2xl font-semibold border-b-2 border-gray-300 pb-2">
-          Today:{today}
-        </p>
+      <div className="w-full p-0 md:p-4 py-4 md:py-0 ">
+        <div className="flex w-full border-b-2 border-gray-300 pb-2 ">
+          <p className="text-2xl font-semibold pl-2 ">Today:{today}</p>
+        </div>
 
         <p className="text-lg font-medium mt-2">
           Total Time Tracked: {hours}h {mintus}m
         </p>
-        {todaysEntries.length > 0 ? (
-          todaysEntries.map((entry, index) => (
-            <div
-              key={entry.id || index}
-              className="flex justify-between items-center bg-orange-50 rounded p-4 mt-4 border border-gray-200"
-            >
-              <div className="flex flex-col">
-                <p className="text-lg font-semibold text-gray-800">
-                  {entry.project.name}
-                </p>
-                <p className="text-sm text-gray-600">{entry.description}</p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <>
-                  <p className="text-sm text-gray-700 font-medium">
-                    Duration: {entry.duration}m
+        {todaysEntries.length > 0
+          ? todaysEntries.map((entry, index) => (
+              <div
+                key={entry.id || index}
+                className="flex justify-between items-center  rounded p-4 mt-4 border-y border-gray-100"
+              >
+                <div className="flex flex-col">
+                  <p className="text-lg font-semibold text-gray-800">
+                    {entry.project.name}
                   </p>
-                  <button  className="border border-gray-400 text-sm px-3 py-1 rounded hover:bg-gray-100">
-                    Edit
-                  </button>
-                </>
+                  <p className="text-sm text-gray-600">{entry.description}</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <>
+                    <p className="text-sm text-gray-700 font-medium">
+                      Duration: {entry.duration}m
+                    </p>
+                    <button
+                      onClick={() => handleDeleteTimeEntry(entry.id)}
+                      className="border border-gray-400 p-1 text-sm  rounded  bg-red-600 text-white hover:bg-red-700"
+                    >
+                      <FiTrash2 size={18} />
+                    </button>
+                  </>
+                </div>
               </div>
-            </div>
-          ))
-        ) : (
-          <p className="mt-4 text-gray-600"> No Entries for today!</p>
-        )}
+            ))
+          : ""}
 
         {startTime && (
-          <div className="flex justify-between items-center bg-orange-50 rounded p-4 mt-4 border border-gray-200">
+          <div className="flex justify-between items-center  rounded p-4 mt-4 border-y border-gray-100">
             <div className="flex flex-col">
               <p className="text-lg font-semibold text-gray-800">
                 {projects.find((p) => p.id === projectId)?.name || "Project"}
               </p>
               <p className="text-sm text-gray-600">{description}</p>
-              <p className="text-sm text-gray-500 mt-1">
-                Duration: {Math.floor(elapsedTime / 60)}m {elapsedTime % 60}s
-              </p>
+              <div className="flex items-center">
+                <p className="text-sm text-gray-500 mt-1">
+                  Duration: {Math.floor(elapsedTime / 60)}m {elapsedTime % 60}s
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -213,9 +228,6 @@ export default function TimeEntry() {
                     )}
                     m
                   </p>
-                  <button className="border border-gray-400 text-sm px-3 py-1 rounded hover:bg-gray-100">
-                    Edit
-                  </button>
                 </>
               )}
             </div>
@@ -232,7 +244,7 @@ export default function TimeEntry() {
 
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative bg-white rounded-xl w-[450px] min-h-[350px] flex flex-col shadow-xl border border-gray-200 "
+            className="relative w-full max-w-sm sm:max-w-md md:max-w-lg bg-white rounded-xl min-h-[350px] flex flex-col shadow-xl border border-gray-200 "
           >
             <h1 className="text-sm text-center py-3 bg-gray-100 border-b text-black font-medium">
               New time entry for {today}
@@ -243,7 +255,7 @@ export default function TimeEntry() {
               <select
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
-                className="border border-gray-300 rounded  px-2 py-1"
+                className="border border-gray-300 rounded  px-2 py-1 text-sm"
               >
                 {loading ? (
                   <option>Loading...</option>
@@ -263,23 +275,23 @@ export default function TimeEntry() {
             </div>
 
             <input
-              className="bg-white mx-4 mb-4 px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-600"
+              className="bg-white mx-4 mb-4 px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-orange-500 text-sm"
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Description"
             />
 
-            <div className="flex px-4 gap-2">
+            <div className="flex flex-col md:flex-row justify-end px-4 gap-2 mb-2">
               <button
                 onClick={handleStartTime}
-                className="bg-green-600 text-lg px-2 text-white rounded-lg hover:cursor-pointer hover:bg-green-700"
+                className="bg-green-600 text-sm md:text-base px-2 py-2 md:py-1 text-white rounded-lg hover:cursor-pointer hover:bg-green-700"
               >
                 Start Timer
               </button>
               <button
                 onClick={() => setOpenModal(false)}
-                className="border rounded-lg text-lg border-gray-300 px-2 hover:border-gray-500 hover:cursor-pointer"
+                className="border rounded-lg text-sm md:text-base px-2 py-2 md:py-1  border-gray-300  hover:border-gray-500 hover:cursor-pointer"
               >
                 Cancel
               </button>

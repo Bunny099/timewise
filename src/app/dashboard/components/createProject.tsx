@@ -34,7 +34,6 @@ export default function CreateProject() {
 
   return (
     <div className="w-full flex">
-      {/* Open Modal Button */}
       <div
         onClick={() => setOpenModal(true)}
         className="text-white flex items-center gap-1 bg-green-800 text-xl px-4 py-1 rounded-xl hover:cursor-pointer hover:bg-green-700 transition-all"
@@ -42,22 +41,24 @@ export default function CreateProject() {
         <GoPlus /> New Project
       </div>
 
-      {/* Modal Overlay */}
       {openModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Dim Background with Blur */}
           <div
             onClick={() => setOpenModal(false)}
             className="absolute inset-0 bg-white/30 backdrop-blur-sm"
           ></div>
 
-          {/* Modal Content */}
           <div
             onClick={(e) => e.stopPropagation()}
             className="relative bg-white rounded-xl p-6 shadow-xl w-[400px] h-[200px] flex flex-col justify-between border border-gray-200"
           >
-            <h1 className="text-2xl font-semibold text-center">Create Project</h1>
-            <form onSubmit={handleCreateProject} className="flex flex-col gap-y-3">
+            <h1 className="text-2xl font-semibold text-center">
+              Create Project
+            </h1>
+            <form
+              onSubmit={handleCreateProject}
+              className="flex flex-col gap-y-3"
+            >
               <input
                 className="bg-white px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-orange-400"
                 type="text"

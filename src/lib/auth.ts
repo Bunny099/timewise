@@ -1,13 +1,12 @@
-
-
 import { AuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google"
 import { prisma } from "@/lib/prisma"
 import { getOrCreateAuthUser } from "./auth-utils";
+import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
-import { Provider } from "@prisma/client";
 
+export const auth = () => getServerSession(authOptions);
 export const authOptions: AuthOptions = {
     providers: [
         GoogleProvider({
@@ -37,7 +36,7 @@ export const authOptions: AuthOptions = {
                 if (!user || !user.password) {
                     return null
                 }
-                const isValid = await bcrypt.compareSync(credentials.password, user.password);
+                const isValid = await bcrypt.compare(credentials.password, user.password);
                 if (!isValid) return null;
                 return { id: user.id, email: user.email, name: user.name, provider: user.provider }
             },
@@ -45,9 +44,13 @@ export const authOptions: AuthOptions = {
     ],
     secret: process.env.NEXTAUTH_SECRET,
     callbacks: {
-        async signIn({ user, account, profile }) {
+        async signIn({ user, account, }) {
             if (account?.provider === "google") {
-                await getOrCreateAuthUser(user)
+                const dbUser = await getOrCreateAuthUser(user);
+                if(dbUser){
+                    user.id = dbUser.id;
+                    user.name = dbUser.name
+                }
             }
             return true
         }

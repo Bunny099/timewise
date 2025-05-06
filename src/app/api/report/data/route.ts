@@ -21,7 +21,8 @@ export async function GET(req: NextRequest) {
                 userId: session.user?.id,
                 startTime: {
                     gte: new Date(start),
-                    lte: new Date(end)
+                    lte: new Date(new Date(end).setHours(23, 59, 59, 999)),
+
                 },
                 ...(projectId && { projectId })
             },

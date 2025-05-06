@@ -1,23 +1,42 @@
 "use client";
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { FiTrash2 } from "react-icons/fi";
 type Project = {
   id: string;
   name: string;
 };
 export default function ProjectListAction() {
   const [projects, setProjects] = useState<Project[]>([]);
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const reponse = await axios.get("/api/project");
-        if (reponse.data.projects) {
-          setProjects(reponse.data.projects);
-        }
-      } catch (error) {
-        console.error("Error fetching Project:", error);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const fetchProjects = async () => {
+    try {
+      const reponse = await axios.get("/api/project");
+      if (reponse.data.projects) {
+        setProjects(reponse.data.projects);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching Project:", error);
+    }
+  };
+
+  const handleDeleteProject = async (id: string) => {
+    try {
+      setDeletingId(id);
+      await axios.delete("/api/project", {
+        headers: { "Content-Type": "application/json" },
+        data: { id },
+      });
+      fetchProjects();
+    } catch (error) {
+      console.error("Failed to Delete Project:", error);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  useEffect(() => {
     fetchProjects();
   }, []);
   return (
@@ -30,6 +49,7 @@ export default function ProjectListAction() {
             <tr>
               <th className="px-4 py-2 font-medium">SR</th>
               <th className="px-4 py-2 font-medium">Project Name</th>
+              <th className="px-4 py-2 font-medium">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -47,6 +67,16 @@ export default function ProjectListAction() {
                 >
                   <td className="px-4 py-2">{index + 1}</td>
                   <td className="px-4 py-2">{project.name}</td>
+                  <td className="px-4 py-2">
+                    <button
+                      onClick={() => handleDeleteProject(project.id)}
+                      disabled={deletingId == project.id}
+                      className="bg-red-600 p-1 rounded-md text-white hover:cursor-pointer hover:bg-red-700 transition-all"
+                    >
+                      {/* {deletingId === project.id ? "Deleting" : "Delete"} */}
+                      <FiTrash2 size={18} />
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
