@@ -13,7 +13,7 @@ export default function Hero() {
       </div>
       <div className="md:w-3/5 w-full mt-10 md:mt-0">
         <img
-          src={"/report.png"}
+          src={"/mock-screen.png"}
           alt="Timewise dashboard"
           className="rounded-xl shadow-md  w-full object-cover"
         />
